@@ -47,6 +47,73 @@ class ServiceGenerator:
             "healthy": True
         }
 
+class ConfigChangeGenerator:
+    """Generate configuration changes and feature flags."""
+    
+    def __init__(self):
+        self.config_versions = {}
+        self.feature_flags = {}
+        self.change_history = []
+        
+    def generate_config_change(self, service: str) -> Dict:
+        """Generate a random configuration change."""
+        change_types = [
+            "database_connection_pool",
+            "timeout_settings",
+            "cache_config",
+            "rate_limiting",
+            "security_policies"
+        ]
+        change = {
+            "type": "config_update",
+            "service": service,
+            "config_key": random.choice(change_types),
+            "old_value": random.randint(1, 100),
+            "new_value": random.randint(1, 100),
+            "timestamp": datetime.utcnow().isoformat(),
+            "source": "git" if random.random() > 0.5 else "kubernetes"
+        }
+        self.change_history.append(change)
+        return change
+        
+    def toggle_feature_flag(self, service: str) -> Dict:
+        """Toggle a feature flag for a service."""
+        flag_name = f"feature_{random.choice(['dark_mode', 'new_checkout', 'ab_test'])}"
+        current = self.feature_flags.get((service, flag_name), False)
+        self.feature_flags[(service, flag_name)] = not current
+        return {
+            "type": "feature_flag",
+            "service": service,
+            "flag": flag_name,
+            "enabled": not current,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+class CloudEventGenerator:
+    """Generate cloud provider events."""
+    
+    def __init__(self):
+        self.regions = ["us-west-1", "us-east-1", "eu-west-1", "ap-southeast-1"]
+        self.event_types = [
+            "instance_termination",
+            "scheduled_maintenance",
+            "network_connectivity",
+            "capacity_change",
+            "credential_rotation"
+        ]
+        
+    def generate_cloud_event(self) -> Dict:
+        """Generate a random cloud provider event."""
+        event_type = random.choice(self.event_types)
+        return {
+            "type": "cloud_event",
+            "event_type": event_type,
+            "region": random.choice(self.regions),
+            "severity": random.choice(["info", "warning", "critical"]),
+            "timestamp": datetime.utcnow().isoformat(),
+            "description": f"Cloud event: {event_type} in {random.choice(self.regions)}"
+        }
+
 class IncidentSimulator:
     """Simulate different types of incidents."""
     
@@ -56,10 +123,14 @@ class IncidentSimulator:
             self._simulate_memory_leak,
             self._simulate_network_latency,
             self._simulate_error_rate_increase,
-            self._simulate_cascading_failure
+            self._simulate_cascading_failure,
+            self._simulate_deployment_issue,
+            self._simulate_config_mismatch
         ]
         self.current_incident = None
         self.incident_end_time = None
+        self.config_generator = ConfigChangeGenerator()
+        self.cloud_generator = CloudEventGenerator()
     
     def trigger_incident(self, services: List[str]) -> Dict:
         """Trigger a random incident."""
@@ -167,6 +238,26 @@ class IncidentSimulator:
             "start_time": datetime.utcnow().isoformat(),
             "duration_seconds": duration
         }
+        
+    def _simulate_deployment_issue(self, service: str, duration: int) -> Dict:
+        return {
+            "type": "deployment_issue",
+            "service": service,
+            "severity": "high",
+            "description": f"Deployment issue in {service}: {random.choice(['ImagePullBackOff', 'CrashLoopBackOff', 'ImageNotFound'])}",
+            "start_time": datetime.utcnow().isoformat(),
+            "duration_seconds": duration
+        }
+        
+    def _simulate_config_mismatch(self, service: str, duration: int) -> Dict:
+        return {
+            "type": "config_mismatch",
+            "service": service,
+            "severity": "medium",
+            "description": f"Configuration mismatch in {service}: {random.choice(['Environment variables', 'Secrets', 'Resource limits'])} not synchronized",
+            "start_time": datetime.utcnow().isoformat(),
+            "duration_seconds": duration
+        }
 
 class DOSSimulation:
     """Main simulation class for DOS demonstration."""
@@ -184,7 +275,13 @@ class DOSSimulation:
         self.service_generators = {name: ServiceGenerator(name) for name in self.services}
         self.incident_simulator = IncidentSimulator()
         self.incident_probability = 0.1  # 10% chance of an incident per cycle
+        self.config_change_probability = 0.05  # 5% chance of config change
+        self.feature_flag_probability = 0.03  # 3% chance of feature flag change
+        self.cloud_event_probability = 0.02  # 2% chance of cloud event
         self.current_incident = None
+        self.last_config_change = {}
+        self.active_feature_flags = {}
+        self.cloud_events = []
     
     async def run_simulation(self, duration_minutes: int = 30):
         """Run the simulation for the specified duration."""
@@ -208,26 +305,58 @@ class DOSSimulation:
         
         print("\n✅ Simulation completed")
     
+    def _print_event(self, event_type: str, message: str, color: str = "white"):
+        """Print an event message with color coding."""
+        colors = {
+            "red": "\033[91m",
+            "green": "\033[92m",
+            "yellow": "\033[93m",
+            "blue": "\033[94m",
+            "reset": "\033[0m"
+        }
+        timestamp = datetime.utcnow().strftime("%H:%M:%S")
+        print(f"{colors.get(color, '')}[{timestamp}] {event_type.upper()}: {message}{colors['reset']}")
+
     async def _simulation_cycle(self):
         """Run one cycle of the simulation."""
-        current_time = datetime.utcnow()
+        timestamp = datetime.utcnow()
         
-        # Check if we should trigger a new incident
-        if not self.incident_simulator.current_incident and random.random() < self.incident_probability:
-            self.current_incident = self.incident_simulator.trigger_incident(self.services)
-            self._print_incident_alert(self.current_incident)
+        # Generate metrics for all services
+        metrics = {}
+        for service in self.services:
+            metrics[service] = self.service_generators[service].generate_metrics(timestamp)
+            
+            # Apply any active incident effects
+            if self.current_incident and self.current_incident["service"] == service:
+                metrics[service] = self.incident_simulator.update_metrics(metrics[service])
+            
+            # Simulate config changes
+            if random.random() < self.config_change_probability:
+                change = self.incident_simulator.config_generator.generate_config_change(service)
+                self.last_config_change[service] = change
+                self._print_event("config", 
+                               f"{service}: {change['config_key']} changed from {change['old_value']} to {change['new_value']}", 
+                               "yellow")
+                    
+            # Simulate feature flag changes
+            if random.random() < self.feature_flag_probability:
+                flag_change = self.incident_simulator.config_generator.toggle_feature_flag(service)
+                self.active_feature_flags[(service, flag_change['flag'])] = flag_change['enabled']
+                status = "enabled" if flag_change['enabled'] else "disabled"
+                self._print_event("feature", 
+                               f"{service}: {flag_change['flag']} {status}", 
+                               "blue")
         
-        # Generate metrics for each service
-        all_metrics = []
-        for service_name, generator in self.service_generators.items():
-            metrics = generator.generate_metrics(current_time)
-            
-            # Apply any active incidents
-            metrics = self.incident_simulator.update_metrics(metrics)
-            all_metrics.append(metrics)
-            
-            # Print status
-            self._print_service_status(metrics)
+        # Simulate cloud events
+        if random.random() < self.cloud_event_probability:
+            cloud_event = self.incident_simulator.cloud_generator.generate_cloud_event()
+            self.cloud_events.append(cloud_event)
+            self._print_event("cloud", 
+                           f"{cloud_event['event_type']} in {cloud_event['region']} ({cloud_event['severity']})", 
+                           "red" if cloud_event['severity'] == 'critical' else "yellow")
+        
+        # Print service status
+        self._print_service_status(metrics)
         
         # Clear the screen for the next update
         print("\033[H\033[J", end="")  # ANSI escape codes to clear screen
@@ -328,5 +457,111 @@ async def main():
     simulation = DOSSimulation()
     await simulation.run_simulation(duration_minutes=15)  # Run for 15 minutes
 
+class TestScenarios:
+    """Predefined test scenarios for the simulation."""
+    
+    @staticmethod
+    async def rolling_update_scenario(simulation):
+        """Simulate a rolling update with potential issues."""
+        print("\n🚀 Starting Rolling Update Scenario")
+        print("1. Starting canary deployment of user-service v2.0.0")
+        
+        # Simulate canary deployment
+        simulation.config_generator.generate_config_change("user-service")
+        await asyncio.sleep(5)
+        
+        # Introduce a configuration issue
+        print("2. Introducing configuration mismatch...")
+        simulation.incident_simulator.trigger_incident(["user-service"])
+        simulation.incident_simulator.current_incident["type"] = "config_mismatch"
+        await asyncio.sleep(10)
+        
+        # Simulate rollback
+        print("3. Rolling back due to issues...")
+        simulation.config_generator.generate_config_change("user-service")
+        simulation.incident_simulator.current_incident = None
+        print("✅ Rolling Update Scenario Complete\n")
+    
+    @staticmethod
+    async def feature_rollout_scenario(simulation):
+        """Simulate a feature flag rollout with monitoring."""
+        print("\n🚀 Starting Feature Rollout Scenario")
+        print("1. Enabling new checkout flow for 10% of users")
+        
+        # Enable feature flag for a percentage of users
+        simulation.config_generator.toggle_feature_flag("checkout-service")
+        await asyncio.sleep(5)
+        
+        # Simulate increased load
+        print("2. Simulating increased traffic...")
+        simulation.incident_simulator.trigger_incident(["checkout-service"])
+        simulation.incident_simulator.current_incident["type"] = "high_traffic"
+        await asyncio.sleep(8)
+        
+        # Auto-scale and complete rollout
+        print("3. Auto-scaling and completing rollout")
+        simulation.incident_simulator.current_incident = None
+        print("✅ Feature Rollout Scenario Complete\n")
+    
+    @staticmethod
+    async def cloud_outage_scenario(simulation):
+        """Simulate a cloud region outage and failover."""
+        print("\n🚀 Starting Cloud Outage Scenario")
+        print("1. Simulating us-east-1 region outage")
+        
+        # Trigger cloud event
+        outage = {
+            "type": "cloud_event",
+            "event_type": "region_outage",
+            "region": "us-east-1",
+            "severity": "critical",
+            "timestamp": datetime.utcnow().isoformat(),
+            "description": "Network connectivity issues in us-east-1"
+        }
+        simulation.cloud_events.append(outage)
+        
+        # Simulate failover
+        await asyncio.sleep(5)
+        print("2. Initiating failover to us-west-2")
+        
+        # Simulate recovery
+        await asyncio.sleep(10)
+        print("3. us-east-1 region restored")
+        print("✅ Cloud Outage Scenario Complete\n")
+
+async def run_scenario(scenario_name: str):
+    """Run a specific test scenario."""
+    simulation = DOSSimulation()
+    scenario = getattr(TestScenarios, f"{scenario_name}_scenario", None)
+    
+    if not scenario:
+        print(f"Scenario '{scenario_name}' not found!")
+        return
+        
+    print(f"\n{'='*50}")
+    print(f"🚀 RUNNING SCENARIO: {scenario_name.replace('_', ' ').title()}")
+    print(f"{'='*50}\n")
+    
+    await scenario(simulation)
+
+def main():
+    """Run the simulation."""
+    parser = argparse.ArgumentParser(description='Run DOS Simulation')
+    parser.add_argument('--scenario', type=str, help='Name of the scenario to run',
+                      choices=['rolling_update', 'feature_rollout', 'cloud_outage', 'all'])
+    args = parser.parse_args()
+    
+    if args.scenario == 'all':
+        scenarios = ['rolling_update', 'feature_rollout', 'cloud_outage']
+        for scenario in scenarios:
+            asyncio.run(run_scenario(scenario))
+    elif args.scenario:
+        asyncio.run(run_scenario(args.scenario))
+    else:
+        # Default to normal simulation mode
+        simulation = DOSSimulation()
+        asyncio.run(simulation.run_simulation())
+
 if __name__ == "__main__":
+    import argparse
     asyncio.run(main())

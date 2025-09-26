@@ -1,0 +1,32 @@
+[
+  {
+    "start_time": "2023-06-03T11:27:00+00:00",
+    "end_time": "2023-06-03T12:57:00+00:00",
+    "type": "database",
+    "services": [
+      "product-service",
+      "inventory-service"
+    ],
+    "severity": "low",
+    "description": "Database issue affecting product-service, inventory-service",
+    "root_cause": "Resource exhaustion",
+    "detected_by": "monitoring",
+    "time_to_detect": 279,
+    "time_to_resolve": 5400
+  },
+  {
+    "start_time": "2023-06-07T14:10:00+00:00",
+    "end_time": "2023-06-07T15:40:00+00:00",
+    "type": "database",
+    "services": [
+      "product-service",
+      "inventory-service"
+    ],
+    "severity": "high",
+    "description": "Database issue affecting product-service, inventory-service",
+    "root_cause": "Resource exhaustion",
+    "detected_by": "alerting",
+    "time_to_detect": 230,
+    "time_to_resolve": 5400
+  }
+]

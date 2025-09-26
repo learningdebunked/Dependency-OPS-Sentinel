@@ -1,0 +1,25 @@
+# Hello World Configuration for DOS
+
+# Service configuration
+services:
+  hello-service:
+    port: 8080
+    dependencies: []
+    health_check: /health
+
+# Monitoring settings
+monitoring:
+  interval: 5s
+  timeout: 2s
+  metrics_port: 9090
+
+# Alerting rules
+alerting:
+  cpu_threshold: 80  # %
+  memory_threshold: 90  # %
+  latency_threshold: 500  # ms
+
+# Logging
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

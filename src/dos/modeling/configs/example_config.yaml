@@ -1,0 +1,27 @@
+# Example configuration for LSTM Autoencoder
+model:
+  model_type: "lstm_autoencoder"
+  input_dim: 10  # Number of input features
+  hidden_dims: [64, 32, 16]  # Hidden layer dimensions
+  latent_dim: 8  # Dimension of latent space
+  num_layers: 2  # Number of LSTM layers
+  dropout: 0.1  # Dropout rate
+
+training:
+  batch_size: 32
+  epochs: 100
+  learning_rate: 0.001
+  weight_decay: 1e-5
+  early_stopping_patience: 10
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  device: "cuda" if torch.cuda.is_available() else "cpu"
+  
+  # Data splitting ratios
+  train_ratio: 0.8
+  val_ratio: 0.1
+  test_ratio: 0.1
+  
+  # Logging intervals
+  log_interval: 10
+  save_interval: 5
