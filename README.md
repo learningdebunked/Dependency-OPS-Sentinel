@@ -699,4 +699,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📬 Contact
 
-For questions or support, please [open an issue](https://github.com/your-org/dependency-ops-sentinel/issues) or contact our team at support@example.com
+For questions or support, please [open an issue](https://github.com/your-org/dependency-ops-sentinel/issues) or contact our team at poreddykapil@ieee.org
