@@ -1,0 +1,145 @@
+# Dependency Ops Sentinel Configuration
+
+# Application settings
+app:
+  name: "Dependency Ops Sentinel"
+  environment: "production"  # or "development", "staging"
+  log_level: "INFO"
+  debug: false
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+
+# Authentication settings
+auth:
+  enabled: true
+  secret_key: "your-secret-key-here"  # Change this in production
+  algorithm: "HS256"
+  access_token_expire_minutes: 30
+  admin_users:
+    - username: "admin"
+      password_hash: "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW"  # "secret"
+
+# Database configuration
+database:
+  url: "sqlite:///./dos.db"  # For production, use PostgreSQL or MySQL
+  echo_sql: false
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+  pool_recycle: 3600
+
+# Kubernetes integration
+kubernetes:
+  enabled: true
+  in_cluster: false  # Set to true when running inside a Kubernetes cluster
+  config_file: "~/.kube/config"  # Only used when in_cluster is false
+  namespaces:
+    - "default"
+    - "monitoring"
+  metrics:
+    - "cpu_usage"
+    - "memory_usage"
+    - "pod_status"
+    - "container_restarts"
+  scan_interval: 60  # seconds
+
+# Cloud provider integration
+cloud_metrics:
+  enabled: true
+  provider: "aws"  # aws, azure, or gcp
+  regions:
+    - "us-east-1"
+    - "us-west-2"
+  metrics:
+    - "CPUUtilization"
+    - "NetworkIn"
+    - "NetworkOut"
+    - "DiskReadOps"
+    - "DiskWriteOps"
+  scan_interval: 300  # seconds
+
+# Alerting configuration
+alerting:
+  enabled: true
+  default_notification_channels:
+    - "email"
+  email:
+    enabled: true
+    smtp_host: "smtp.example.com"
+    smtp_port: 587
+    smtp_user: "user@example.com"
+    smtp_password: "your-smtp-password"
+    from_email: "dos-alerts@example.com"
+    to_emails:
+      - "team@example.com"
+  slack:
+    enabled: false
+    webhook_url: "https://hooks.slack.com/services/xxx/yyy/zzz"
+    channel: "#alerts"
+    username: "DOS Bot"
+
+# Machine learning model settings
+ml_models:
+  anomaly_detection:
+    model_path: "models/anomaly_detection.pt"
+    threshold: 0.85
+    retrain_interval: 86400  # seconds (24 hours)
+  root_cause_analysis:
+    model_path: "models/root_cause.pt"
+    confidence_threshold: 0.7
+
+# Caching configuration
+cache:
+  enabled: true
+  backend: "redis"  # or "inmemory"
+  ttl: 300  # seconds
+  redis_url: "redis://localhost:6379/0"
+
+# Monitoring and metrics
+monitoring:
+  prometheus:
+    enabled: true
+    port: 9090
+  health_check_interval: 30  # seconds
+  metrics_prefix: "dos_"
+
+# Rate limiting
+rate_limiting:
+  enabled: true
+  storage_url: "redis://localhost:6379/1"
+  rate_limit: "100/minute"
+
+# External service integrations
+external_services:
+  # Example: Integration with PagerDuty
+  pagerduty:
+    enabled: false
+    api_key: "your-pagerduty-api-key"
+    service_id: "your-pagerduty-service-id"
+  
+  # Example: Integration with OpsGenie
+  opsgenie:
+    enabled: false
+    api_key: "your-opsgenie-api-key"
+    team: "your-opsgenie-team"
+
+# Feature flags
+features:
+  enable_auto_remediation: false
+  enable_advanced_analytics: true
+  enable_anomaly_detection: true
+  enable_root_cause_analysis: true
+
+# API documentation
+openapi:
+  title: "Dependency Ops Sentinel API"
+  description: "API documentation for Dependency Ops Sentinel"
+  version: "1.0.0"
+  contact:
+    name: "Support Team"
+    email: "support@example.com"
+    url: "https://example.com/support"
+  license:
+    name: "MIT"
+    url: "https://opensource.org/licenses/MIT"

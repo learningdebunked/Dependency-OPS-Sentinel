@@ -1,0 +1,112 @@
+groups:
+- name: dos-alerts
+  rules:
+  # High error rate
+  - alert: HighErrorRate
+    expr: sum(rate(http_requests_total{status=~"5.."}[5m])) by (service, route) / sum(rate(http_requests_total[5m])) by (service, route) * 100 > 5
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High error rate on {{ $labels.service }}/{{ $labels.route }}"
+      description: "Error rate is {{ $value }}% for service {{ $labels.service }} on route {{ $labels.route }}"
+
+  # High latency
+  - alert: HighLatency
+    expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service, route)) > 1
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High latency on {{ $labels.service }}/{{ $labels.route }}"
+      description: "99th percentile latency is {{ $value }}s for service {{ $labels.service }} on route {{ $labels.route }}"
+
+  # High CPU usage
+  - alert: HighCPUUsage
+    expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100 > 80
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage on {{ $labels.instance }}"
+      description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+  # High memory usage
+  - alert: HighMemoryUsage
+    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage on {{ $labels.instance }}"
+      description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+  # Service down
+  - alert: ServiceDown
+    expr: up == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Service {{ $labels.job }} is down"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
+  # High request rate
+  - alert: HighRequestRate
+    expr: sum(rate(http_requests_total[5m])) by (service) > 1000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High request rate on {{ $labels.service }}"
+      description: "Request rate is {{ $value }} req/s for service {{ $labels.service }}"
+
+  # Pod restarting frequently
+  - alert: FrequentPodRestarts
+    expr: kube_pod_container_status_restarts_total > 0
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container {{ $labels.container }} in pod {{ $labels.pod }} is restarting frequently"
+      description: "Container {{ $labels.container }} in pod {{ $labels.pod }} has restarted {{ $value }} times"
+
+  # Pod not ready
+  - alert: PodNotReady
+    expr: kube_pod_status_ready{condition="false"} == 1
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Pod {{ $labels.pod }} is not ready"
+      description: "Pod {{ $labels.pod }} has been in a non-ready state for more than 5 minutes"
+
+  # Node memory pressure
+  - alert: NodeMemoryPressure
+    expr: kube_node_status_condition{condition="MemoryPressure", status="true"} == 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Node {{ $labels.node }} is under memory pressure"
+      description: "Node {{ $labels.node }} has been under memory pressure for more than 5 minutes"
+
+  # Node disk pressure
+  - alert: NodeDiskPressure
+    expr: kube_node_status_condition{condition="DiskPressure", status="true"} == 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Node {{ $labels.node }} is under disk pressure"
+      description: "Node {{ $labels.node }} has been under disk pressure for more than 5 minutes"
+
+  # Node not ready
+  - alert: NodeNotReady
+    expr: kube_node_status_condition{condition="Ready", status!="true"} == 1
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Node {{ $labels.node }} is not ready"
+      description: "Node {{ $labels.node }} has been in a not ready state for more than 5 minutes"
